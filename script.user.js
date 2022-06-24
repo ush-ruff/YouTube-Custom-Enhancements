@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.2.0
+// @version      0.3.0
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -41,19 +41,35 @@
 const PLAYER_ID = "movie_player"
 const TOAST_ID = "yt-custom-toast"
 
-const QUALITY_LOOKUP = {
+const QUALITY_KEYS = {
+  // key: "hd2160",
+  // key: "hd1440",
   65: "hd1080",
   83: "hd720",
   68: "large",
+  // key: "medium",
+  // key: "small",
+  // key: "tiny",
   81: "auto",
   90: "decrease",
   88: "increase"
 }
 
-const SPEED_LOOKUP = {
+const SPEED_KEYS = {
   107: "increase",
   109: "decrease",
   106: "default"
+}
+
+const QUALITY_LABELS = {
+  "hd2160": "2160p",
+  "hd1440": "1440p",
+  "hd1080": "1080p",
+  "hd720": "720p",
+  "large": "480p",
+  "medium": "360p",
+  "small": "240p",
+  "tiny": "144p"
 }
 
 
@@ -73,7 +89,7 @@ function changePlaybackQuality(e) {
   const key = getKey(e)
 
   // check against lookup table
-  if (!(QUALITY_LOOKUP[key])) return
+  if (!(QUALITY_KEYS[key])) return
 
   // get player, available quality and current quality
   const player = document.getElementById(PLAYER_ID)
@@ -86,22 +102,25 @@ function changePlaybackQuality(e) {
   const currentQualityIndex = availableQuality.indexOf(currentQuality)
 
   // change quality
-  if (QUALITY_LOOKUP[key] === "increase") {
+  if (QUALITY_KEYS[key] === "increase") {
     if (currentQualityIndex > 0) {
       player.setPlaybackQualityRange(availableQuality[currentQualityIndex - 1])
     }
   }
-  else if (QUALITY_LOOKUP[key] === "decrease") {
+  else if (QUALITY_KEYS[key] === "decrease") {
     if (currentQualityIndex < availableQuality.length - 2) {
       player.setPlaybackQualityRange(availableQuality[currentQualityIndex + 1])
     }
   }
-  else if (QUALITY_LOOKUP[key] === "auto") {
+  else if (QUALITY_KEYS[key] === "auto") {
     setQualityAuto()
   }
   else {
-    player.setPlaybackQualityRange(QUALITY_LOOKUP[key])
+    player.setPlaybackQualityRange(QUALITY_KEYS[key])
   }
+
+  const newQuality = QUALITY_KEYS[key] === "auto" ? "Auto" : QUALITY_LABELS[player.getPlaybackQuality()]
+  updateToastText(TOAST_ID, `${newQuality}`)
 }
 
 
@@ -113,20 +132,20 @@ function changePlaybackSpeed(e) {
   const key = getKey(e)
 
   // check against lookup table
-  if (!(SPEED_LOOKUP[key])) return
+  if (!(SPEED_KEYS[key])) return
 
   const player = document.getElementById(PLAYER_ID)
   const currentSpeed = player.getPlaybackRate()
   let newSpeed
 
   // change speed
-  if (SPEED_LOOKUP[key] === "decrease" && currentSpeed > 0.25) {
+  if (SPEED_KEYS[key] === "decrease" && currentSpeed > 0.25) {
     newSpeed = currentSpeed - 0.25
   }
-  else if (SPEED_LOOKUP[key] === "increase" && currentSpeed < 2) {
+  else if (SPEED_KEYS[key] === "increase" && currentSpeed < 2) {
     newSpeed = currentSpeed + 0.25
   }
-  else if (SPEED_LOOKUP[key] === "default" && currentSpeed !== 1) {
+  else if (SPEED_KEYS[key] === "default" && currentSpeed !== 1) {
     newSpeed = 1
   }
 
@@ -216,7 +235,7 @@ function updateToastText(id, text) {
 
   setTimeout(() => {
     toast.dataset.hidden = "true"
-  }, 500);
+  }, 300);
 }
 
 function addStyle() {
@@ -233,7 +252,7 @@ function addStyle() {
     font-family: inherit;
     padding: 1em;
     background-color: rgba(0, 0, 0, .5);
-    border-radius: 0.5rem;
+    border-radius: 0.25rem;
     transform: translateX(-50%);
     user-select: none;
     z-index: 99;
