@@ -250,8 +250,8 @@ function addStyle() {
     top: 15%;
     left: 50%;
     font-family: inherit;
-    padding: 1em;
-    background-color: rgba(0, 0, 0, .5);
+    padding: 10px;
+    background-color: rgba(0, 0, 0, .75);
     border-radius: 0.25rem;
     transform: translateX(-50%);
     user-select: none;
@@ -261,10 +261,10 @@ function addStyle() {
     opacity: 0;
   }
   #${TOAST_ID}[data-hidden=true] {
-    animation: fadeout .25s linear 1 normal forwards;
+    animation: fadeout .5s linear 1 normal forwards;
   }
   .${TOAST_ID}-text {
-    font-size: 16px;
+    font-size: 19px;
     text-align: center;
     text-shadow: 0 0 2px rgba(0,0,0,.5);
   }
@@ -273,9 +273,11 @@ function addStyle() {
     0% {
       opacity: 1;
     }
+    25% {
+      opacity:1
+    }
     to {
-      opacity: 0;
-      transform: translateX(-50%) scale(1.5);
+      opacity:0
     }
   }
   `
