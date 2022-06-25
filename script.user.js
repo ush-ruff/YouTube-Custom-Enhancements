@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.3.0
+// @version      0.3.2
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -77,26 +77,19 @@ const QUALITY_LABELS = {
 // Add Event Listeners
 // --------------------
 document.addEventListener("yt-navigate-finish", setupToast, {once: true})
-document.addEventListener("keydown", changePlaybackQuality)
-document.addEventListener("keydown", changePlaybackSpeed)
+document.addEventListener("keydown", getKey)
 
 
 // ---------------------
 // Set playback quality
 // ---------------------
-function changePlaybackQuality(e) {
-  // get key pressed
-  const key = getKey(e)
-
-  // check against lookup table
-  if (!(QUALITY_KEYS[key])) return
-
+function changePlaybackQuality(key) {
   // get player, available quality and current quality
   const player = document.getElementById(PLAYER_ID)
   const availableQuality = player.getAvailableQualityLevels()
   const currentQuality = player.getPlaybackQuality()
   
-  // check against availabele quality
+  // check key against available quality
   if (!(availableQuality.indexOf(key))) return
   
   const currentQualityIndex = availableQuality.indexOf(currentQuality)
@@ -127,13 +120,8 @@ function changePlaybackQuality(e) {
 // -------------------
 // Set playback speed
 // -------------------
-function changePlaybackSpeed(e) {
-  // get key pressed
-  const key = getKey(e)
-
-  // check against lookup table
-  if (!(SPEED_KEYS[key])) return
-
+function changePlaybackSpeed(key) {
+  // get player and current speed
   const player = document.getElementById(PLAYER_ID)
   const currentSpeed = player.getPlaybackRate()
   let newSpeed
@@ -170,7 +158,12 @@ function getKey(e) {
     return
   }
   
-  return key
+  if (SPEED_KEYS[key]) {
+    changePlaybackSpeed(key)
+  }
+  else if (QUALITY_KEYS[key]) {
+    changePlaybackQuality(key)
+  }
 }
 
 function setQualityAuto() {
@@ -283,4 +276,3 @@ function addStyle() {
   `
   document.head.append(styleSheet)
 }
-
