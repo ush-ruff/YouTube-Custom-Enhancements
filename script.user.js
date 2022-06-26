@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.3.2
+// @version      0.3.3
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -77,7 +77,10 @@ const QUALITY_LABELS = {
 // Add Event Listeners
 // --------------------
 document.addEventListener("yt-navigate-finish", setupToast, {once: true})
-document.addEventListener("keydown", getKey)
+document.addEventListener("keydown", (e) => {
+  const player = document.querySelector(`ytd-watch-flexy:not([hidden]) #${PLAYER_ID}`)
+  if (player !== null) getKey(e)
+})
 
 
 // ---------------------
@@ -113,7 +116,7 @@ function changePlaybackQuality(key) {
   }
 
   const newQuality = QUALITY_KEYS[key] === "auto" ? "Auto" : QUALITY_LABELS[player.getPlaybackQuality()]
-  updateToastText(TOAST_ID, `${newQuality}`)
+  updateToastText(`${newQuality}`)
 }
 
 
@@ -140,7 +143,7 @@ function changePlaybackSpeed(key) {
   if (newSpeed === undefined) return
 
   player.setPlaybackRate(newSpeed)
-  updateToastText(TOAST_ID, `${newSpeed}x`)
+  updateToastText(`${newSpeed}x`)
 }
 
 
@@ -195,40 +198,42 @@ function setupToast() {
     return
   }
 
-  createToast(TOAST_ID, parent)
+  createToast(parent)
   addStyle()
 }
 
-function createToast(id, parent) {
+function createToast(parent) {
   const toast = document.createElement("div")
-  const toastText = document.createElement("div")
 
-  toast.id = id
+  toast.id = TOAST_ID
   toast.dataset.init = "true"
-
-  toastText.classList.add(`${id}-text`)
-  toast.append(toastText)
 
   parent.append(toast)
 }
 
-function updateToastText(id, text) {
-  let toast = document.getElementById(id)
+function updateToastText(text) {
+  let toast = document.getElementById(TOAST_ID)
   
   if (toast === null) {
-    toast = createToast(TOAST_ID, document.getElementById(PLAYER_ID))
+    toast = createToast(document.getElementById(PLAYER_ID))
   }
-
-  const toastText = toast.querySelector(`.${id}-text`)
-  
-  toastText.textContent = text
-
   if (toast.getAttribute("data-init")) toast.removeAttribute("data-init")
-  toast.dataset.hidden = "false"
 
-  setTimeout(() => {
-    toast.dataset.hidden = "true"
-  }, 300);
+  let toastText = toast.querySelector(`.${TOAST_ID}-text`)
+  
+  if (toastText !== null) toast.removeChild(toastText)
+  
+  toastText = document.createElement("div")
+  toastText.classList.add(`${TOAST_ID}-text`)
+  toast.append(toastText)
+  toastText.textContent = text
+  
+  setTimeout(() => {toastText.dataset.fade = "true"}, 300)
+
+  toastText.addEventListener("animationend", () => {
+    toastText.dataset.fade = "false"
+    toast.removeChild(toastText)
+  }, {once: true})
 }
 
 function addStyle() {
@@ -238,28 +243,27 @@ function addStyle() {
     position: absolute;
     display: grid;
     place-items: center;
-    min-width: 4em;
-    min-height: 2em;
-    top: 15%;
+    top: 10%;
     left: 50%;
-    font-family: inherit;
-    padding: 10px;
-    background-color: rgba(0, 0, 0, .75);
-    border-radius: 0.25rem;
     transform: translateX(-50%);
     user-select: none;
-    z-index: 99;
-  }
-  #${TOAST_ID}[data-init=true] {
-    opacity: 0;
-  }
-  #${TOAST_ID}[data-hidden=true] {
-    animation: fadeout .5s linear 1 normal forwards;
+    z-index: 20;
   }
   .${TOAST_ID}-text {
-    font-size: 19px;
+    font-size: 175%;
     text-align: center;
     text-shadow: 0 0 2px rgba(0,0,0,.5);
+    line-height: 1.3;
+    padding: 10px 20px;
+    background-color: rgba(0, 0, 0, .5);
+    border-radius: 0.25rem;
+    pointer-events: none;
+  }
+  [data-init=true] {
+    opacity: 0;
+  }
+  [data-fade=true] {
+    animation: fadeout .5s linear 1 normal forwards;
   }
 
   @keyframes fadeout {
