@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.3.4
+// @version      0.3.5
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -167,7 +167,9 @@ function setQualityAuto() {
   const autoQuality = availableQuality[availableQuality.length - 1]
   autoQuality.click()
 
-  settingsBtn.blur()
+  // give focus back to player
+  const player = document.getElementById(PLAYER_ID)
+  player.focus()
 }
 
 
