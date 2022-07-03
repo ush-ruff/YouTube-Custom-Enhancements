@@ -2,44 +2,21 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.3.3
+// @version      0.3.4
 // @description
 // @match        https://*.youtube.com/*
 // @icon
-// @require      https://cdn.jsdelivr.net/npm/@violentmonkey/dom@1
 // @require      https://cdn.jsdelivr.net/gh/CoeJoder/waitForKeyElements.js@v1.2/waitForKeyElements.js
 // @grant        none
 // ==/UserScript==
 
+// https://cdn.jsdelivr.net/npm/@violentmonkey/dom@1
 // https://developers.google.com/youtube/iframe_api_reference?csw=1#Events=
 // https://stackoverflow.com/questions/8802498/youtube-iframe-api-setplaybackquality-or-suggestedquality-not-working
-
-"use strict"
-
-// const SET_PLAYER_SIZE = true
-
-// if (SET_PLAYER_SIZE) { 
-//   document.addEventListener("yt-navigate-finish", () => {
-//     waitForKeyElements("#movie-player", setPlayerSize)
-//   }) 
-// }
-
-// // Set Player Size
-// function setPlayerSize(p) {
-//   const s = p.clientHeight
-//   const ep = p.wrappedJSObject || p
-
-//   if (ep.setInternalSize && ep.isFullscreen && ep.getPlayerSize && !ep.isFullscreen() && ep.getPlayerSize().height != s) {
-//     ep.setInternalSize()
-//   }
-//   console.log("success")
-// }
 
 // -----------------------
 // CONFIGURABLE VARIABLES
 // -----------------------
-const PLAYER_ID = "movie_player"
-const TOAST_ID = "yt-custom-toast"
 
 const QUALITY_KEYS = {
   // key: "hd2160",
@@ -61,6 +38,12 @@ const SPEED_KEYS = {
   106: "default"
 }
 
+// --------------------
+// REFERENCE VARIABLES
+// --------------------
+const PLAYER_ID = "movie_player"
+const TOAST_ID = "yt-custom-toast"
+
 const QUALITY_LABELS = {
   "hd2160": "2160p",
   "hd1440": "1440p",
@@ -79,7 +62,8 @@ const QUALITY_LABELS = {
 document.addEventListener("yt-navigate-finish", setupToast, {once: true})
 document.addEventListener("keydown", (e) => {
   const player = document.querySelector(`ytd-watch-flexy:not([hidden]) #${PLAYER_ID}`)
-  if (player !== null) getKey(e)
+  const iframePlayer = document.querySelector(`body > #player #${PLAYER_ID}`)
+  if (player !== null || iframePlayer !== null) getKey(e)
 })
 
 
@@ -215,7 +199,7 @@ function updateToastText(text) {
   let toast = document.getElementById(TOAST_ID)
   
   if (toast === null) {
-    toast = createToast(document.getElementById(PLAYER_ID))
+    toast = setupToast(document.getElementById(PLAYER_ID))
   }
   if (toast.getAttribute("data-init")) toast.removeAttribute("data-init")
 
