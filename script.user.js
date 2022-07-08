@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.3.5
+// @version      0.4.0
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -17,6 +17,7 @@
 // -----------------------
 // CONFIGURABLE VARIABLES
 // -----------------------
+const CLOSE_SIDEBAR = false
 
 const QUALITY_KEYS = {
   // key: "hd2160",
@@ -59,12 +60,27 @@ const QUALITY_LABELS = {
 // --------------------
 // Add Event Listeners
 // --------------------
+if (CLOSE_SIDEBAR) {
+  document.addEventListener("yt-navigate-finish", closeSidebar)
+}
+
 document.addEventListener("yt-navigate-finish", setupToast, {once: true})
 document.addEventListener("keydown", (e) => {
   const player = document.querySelector(`ytd-watch-flexy:not([hidden]) #${PLAYER_ID}`)
   const iframePlayer = document.querySelector(`body > #player #${PLAYER_ID}`)
   if (player !== null || iframePlayer !== null) getKey(e)
 })
+
+
+// --------------
+// Close Sidebar
+// --------------
+function closeSidebar() {
+  const sidebar = document.getElementById("guide")
+  if (sidebar.opened) {
+    sidebar.removeAttribute("opened")
+  }
+}
 
 
 // ---------------------
