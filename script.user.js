@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.4.0
+// @version      0.4.1
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -200,40 +200,28 @@ function setupToast() {
     return
   }
 
-  createToast(parent)
-  addStyle()
-}
-
-function createToast(parent) {
   const toast = document.createElement("div")
-
   toast.id = TOAST_ID
-  toast.dataset.init = "true"
-
   parent.append(toast)
+  addStyle()
 }
 
 function updateToastText(text) {
   let toast = document.getElementById(TOAST_ID)
   
   if (toast === null) {
-    toast = setupToast(document.getElementById(PLAYER_ID))
+    setupToast()
+    toast = document.getElementById(TOAST_ID)
   }
-  if (toast.getAttribute("data-init")) toast.removeAttribute("data-init")
 
   let toastText = toast.querySelector(`.${TOAST_ID}-text`)
-  
-  if (toastText !== null) toast.removeChild(toastText)
   
   toastText = document.createElement("div")
   toastText.classList.add(`${TOAST_ID}-text`)
   toast.append(toastText)
   toastText.textContent = text
   
-  setTimeout(() => {toastText.dataset.fade = "true"}, 300)
-
   toastText.addEventListener("animationend", () => {
-    toastText.dataset.fade = "false"
     toast.removeChild(toastText)
   }, {once: true})
 }
@@ -260,14 +248,8 @@ function addStyle() {
     background-color: rgba(0, 0, 0, .5);
     border-radius: 0.25rem;
     pointer-events: none;
+    animation: fadeout .5s .3s linear 1 normal forwards;
   }
-  [data-init=true] {
-    opacity: 0;
-  }
-  [data-fade=true] {
-    animation: fadeout .5s linear 1 normal forwards;
-  }
-
   @keyframes fadeout {
     0% {
       opacity: 1;
