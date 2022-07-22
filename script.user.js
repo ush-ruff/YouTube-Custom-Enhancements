@@ -2,15 +2,15 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.4.1
+// @version      0.4.2
 // @description
 // @match        https://*.youtube.com/*
 // @icon
-// @require      https://cdn.jsdelivr.net/gh/CoeJoder/waitForKeyElements.js@v1.2/waitForKeyElements.js
 // @grant        none
 // ==/UserScript==
 
 // https://cdn.jsdelivr.net/npm/@violentmonkey/dom@1
+// https://cdn.jsdelivr.net/gh/CoeJoder/waitForKeyElements.js@v1.2/waitForKeyElements.js
 // https://developers.google.com/youtube/iframe_api_reference?csw=1#Events=
 // https://stackoverflow.com/questions/8802498/youtube-iframe-api-setplaybackquality-or-suggestedquality-not-working
 
@@ -215,15 +215,12 @@ function updateToastText(text) {
   }
 
   let toastText = toast.querySelector(`.${TOAST_ID}-text`)
+  if (toastText !== null) toast.removeChild(toastText)
   
   toastText = document.createElement("div")
   toastText.classList.add(`${TOAST_ID}-text`)
   toast.append(toastText)
   toastText.textContent = text
-  
-  toastText.addEventListener("animationend", () => {
-    toast.removeChild(toastText)
-  }, {once: true})
 }
 
 function addStyle() {
