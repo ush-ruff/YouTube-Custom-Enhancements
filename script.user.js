@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.4.2
+// @version      0.4.3
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -215,12 +215,14 @@ function updateToastText(text) {
   }
 
   let toastText = toast.querySelector(`.${TOAST_ID}-text`)
-  if (toastText !== null) toast.removeChild(toastText)
+  if (toastText !== null) toastText.remove()
   
   toastText = document.createElement("div")
   toastText.classList.add(`${TOAST_ID}-text`)
   toast.append(toastText)
   toastText.textContent = text
+
+  toastText.addEventListener("animationend", () => { toastText.remove() })
 }
 
 function addStyle() {
