@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.4.3
+// @version      0.5.0
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -14,9 +14,11 @@
 // https://developers.google.com/youtube/iframe_api_reference?csw=1#Events=
 // https://stackoverflow.com/questions/8802498/youtube-iframe-api-setplaybackquality-or-suggestedquality-not-working
 
+
 // -----------------------
 // CONFIGURABLE VARIABLES
 // -----------------------
+const SET_PLAYER_SIZE = false
 const CLOSE_SIDEBAR = false
 
 const QUALITY_KEYS = {
@@ -60,6 +62,13 @@ const QUALITY_LABELS = {
 // --------------------
 // Add Event Listeners
 // --------------------
+if (SET_PLAYER_SIZE) { 
+  document.addEventListener("yt-navigate-finish", () => {
+    // waitForKeyElements(PLAYER_ID, setPlayerSize)
+    setPlayerSize()
+  }) 
+}
+
 if (CLOSE_SIDEBAR) {
   document.addEventListener("yt-navigate-finish", closeSidebar)
 }
@@ -70,6 +79,21 @@ document.addEventListener("keydown", (e) => {
   const iframePlayer = document.querySelector(`body > #player #${PLAYER_ID}`)
   if (player !== null || iframePlayer !== null) getKey(e)
 })
+
+
+// ----------------
+// Set Player Size
+// ----------------
+function setPlayerSize() {  
+  setInterval(function() {
+    const player = document.getElementById("movie_player")
+    if (!player) return
+    const size = player.clientHeight
+    if (!player.isFullscreen() && player.getPlayerSize().height !== size)
+      // console.log(size, player.getPlayerSize().height)
+      player.setInternalSize()
+  }, 1000)
+}
 
 
 // --------------
