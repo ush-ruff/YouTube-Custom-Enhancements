@@ -2,11 +2,12 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.6.0
+// @version      0.6.1
 // @description
 // @match        https://*.youtube.com/*
 // @icon
-// @downloadURL  https://raw.githubusercontent.com/ush-ruff/YouTube-Custom-Enhancements/blob/main/script.user.js
+// @homepageURL  https://github.com/ush-ruff/YouTube-Custom-Enhancements/
+// @downloadURL  https://github.com/ush-ruff/YouTube-Custom-Enhancements/raw/main/script.user.js
 // @grant        none
 // ==/UserScript==
 
