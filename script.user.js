@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.5.0
+// @version      0.5.1
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -115,21 +115,27 @@ function changePlaybackQuality(key) {
   const player = document.getElementById(PLAYER_ID)
   const availableQuality = player.getAvailableQualityLevels()
   const currentQuality = player.getPlaybackQuality()
-  
-  // check key against available quality
-  if (!(availableQuality.indexOf(key))) return
-  
+  let newQualityLabel
+
   const currentQualityIndex = availableQuality.indexOf(currentQuality)
 
   // change quality
   if (QUALITY_KEYS[key] === "increase") {
-    if (currentQualityIndex > 0) {
+    if (currentQualityIndex == 0) {
+      newQualityLabel = currentQuality
+    }
+    else if (currentQualityIndex > 0) {
       player.setPlaybackQualityRange(availableQuality[currentQualityIndex - 1])
+      newQualityLabel = availableQuality[currentQualityIndex - 1]
     }
   }
   else if (QUALITY_KEYS[key] === "decrease") {
-    if (currentQualityIndex < availableQuality.length - 2) {
+    if (currentQualityIndex == availableQuality.length - 2) {
+      newQualityLabel = currentQuality
+    }
+    else if (currentQualityIndex < availableQuality.length - 2) {
       player.setPlaybackQualityRange(availableQuality[currentQualityIndex + 1])
+      newQualityLabel = availableQuality[currentQualityIndex + 1]
     }
   }
   else if (QUALITY_KEYS[key] === "auto") {
@@ -137,9 +143,11 @@ function changePlaybackQuality(key) {
   }
   else {
     player.setPlaybackQualityRange(QUALITY_KEYS[key])
+    newQualityLabel = QUALITY_KEYS[key]
   }
 
-  const newQuality = QUALITY_KEYS[key] === "auto" ? "Auto" : QUALITY_LABELS[player.getPlaybackQuality()]
+  // const newQuality = QUALITY_KEYS[key] === "auto" ? "Auto" : QUALITY_LABELS[player.getPlaybackQuality()]
+  const newQuality = QUALITY_KEYS[key] === "auto" ? "Auto" : QUALITY_LABELS[newQualityLabel]
   updateToastText(`${newQuality}`)
 }
 
