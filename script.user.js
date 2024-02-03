@@ -2,10 +2,11 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.5.1
+// @version      0.6.0
 // @description
 // @match        https://*.youtube.com/*
 // @icon
+// @downloadURL  https://raw.githubusercontent.com/ush-ruff/YouTube-Custom-Enhancements/blob/main/script.user.js
 // @grant        none
 // ==/UserScript==
 
@@ -41,6 +42,8 @@ const SPEED_KEYS = {
   106: "default"
 }
 
+const DEFAULT_TAB_HREF = "videos"
+
 // --------------------
 // REFERENCE VARIABLES
 // --------------------
@@ -58,15 +61,18 @@ const QUALITY_LABELS = {
   "tiny": "144p"
 }
 
+const RX_CHANNEL_HOME = /^(https?:\/\/www\.youtube\.com)((\/(@\\?.*))|\/(user|channel|c)\/[^\/]+(\/?$|\/featured))/
+const DEFAULT_TAB_ENDPOINT_PARAMS = encodeURIComponent(btoa(String.fromCharCode(0x12, 0x06) + DEFAULT_TAB_HREF))
+
 
 // --------------------
 // Add Event Listeners
 // --------------------
-if (SET_PLAYER_SIZE) { 
+if (SET_PLAYER_SIZE) {
   document.addEventListener("yt-navigate-finish", () => {
     // waitForKeyElements(PLAYER_ID, setPlayerSize)
     setPlayerSize()
-  }) 
+  })
 }
 
 if (CLOSE_SIDEBAR) {
@@ -74,17 +80,26 @@ if (CLOSE_SIDEBAR) {
 }
 
 document.addEventListener("yt-navigate-finish", setupToast, {once: true})
+
 document.addEventListener("keydown", (e) => {
   const player = document.querySelector(`ytd-watch-flexy:not([hidden]) #${PLAYER_ID}`)
   const iframePlayer = document.querySelector(`body > #player #${PLAYER_ID}`)
   if (player !== null || iframePlayer !== null) getKey(e)
 })
 
+document.addEventListener("mousedown", (e) => {
+  const a = e.target.closest("a")
+  if (!a) return
+  changeChannelDefaultTab(a)
+}, true)
+
+window.addEventListener("load", changeChannelDefaultTabOnLoad, {once: true})
+
 
 // ----------------
 // Set Player Size
 // ----------------
-function setPlayerSize() {  
+function setPlayerSize() {
   setInterval(function() {
     const player = document.getElementById("movie_player")
     if (!player) return
@@ -179,6 +194,31 @@ function changePlaybackSpeed(key) {
 }
 
 
+// ---------------------------
+// Change channel default tab
+// ---------------------------
+function changeChannelDefaultTab(a) {
+  if (a && RX_CHANNEL_HOME.test(a.href) && !a.href.endsWith(DEFAULT_TAB_HREF)) {
+    a.href = a.href + "/" + DEFAULT_TAB_HREF
+
+    // without this the url in the browsers navigation bar will show the wrong url but the videos tab is still being loaded
+    try { a.data.commandMetadata.webCommandMetadata.url = a.href } catch (e) {}
+
+    // this makes sure that the videos tab is the one actually being loaded
+    try { a.data.browseEndpoint.params = DEFAULT_TAB_ENDPOINT_PARAMS } catch (e) {}
+  }
+}
+
+function changeChannelDefaultTabOnLoad() {
+  if (RX_CHANNEL_HOME.test(location.href) && String(location.href).indexOf(DEFAULT_TAB_HREF) === -1) {
+    // this will get invoked when a youtube channel link is reached from a non-youtube origin page
+    // where we didn't rewrite the link
+    location.href = RegExp.$2 + "/" + DEFAULT_TAB_HREF
+    return
+  }
+}
+
+
 // -----------------
 // Helper Functions
 // -----------------
@@ -192,7 +232,7 @@ function getKey(e) {
   if (e.ctrlKey === true || e.shiftKey === true || e.altKey === true) {
     return
   }
-  
+
   if (SPEED_KEYS[key]) {
     changePlaybackSpeed(key)
   }
@@ -240,7 +280,7 @@ function setupToast() {
 
 function updateToastText(text) {
   let toast = document.getElementById(TOAST_ID)
-  
+
   if (toast === null) {
     setupToast()
     toast = document.getElementById(TOAST_ID)
@@ -248,7 +288,7 @@ function updateToastText(text) {
 
   let toastText = toast.querySelector(`.${TOAST_ID}-text`)
   if (toastText !== null) toastText.remove()
-  
+
   toastText = document.createElement("div")
   toastText.classList.add(`${TOAST_ID}-text`)
   toast.append(toastText)
