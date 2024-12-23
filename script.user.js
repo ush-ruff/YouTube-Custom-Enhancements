@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.6.1
+// @version      0.7.0
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -34,7 +34,9 @@ const QUALITY_KEYS = {
   // key: "tiny",
   81: "auto",
   90: "decrease",
-  88: "increase"
+  88: "increase",
+  "shift+90": "min quality",
+  "shift+88": "max quality"
 }
 
 const SPEED_KEYS = {
@@ -127,44 +129,73 @@ function closeSidebar() {
 // Set playback quality
 // ---------------------
 function changePlaybackQuality(key) {
-  // get player, available quality and current quality
+  // Get player, available quality and current quality
   const player = document.getElementById(PLAYER_ID)
-  const availableQuality = player.getAvailableQualityLevels()
+  const availableQualityLevels = player.getAvailableQualityLevels()
   const currentQuality = player.getPlaybackQuality()
-  let newQualityLabel
+  const currentIndex = availableQualityLevels.indexOf(currentQuality)
 
-  const currentQualityIndex = availableQuality.indexOf(currentQuality)
+  const MIN_QUALITY_INDEX = availableQualityLevels.length - 2
+  const MAX_QUALITY_INDEX = 0
 
-  // change quality
-  if (QUALITY_KEYS[key] === "increase") {
-    if (currentQualityIndex == 0) {
-      newQualityLabel = currentQuality
-    }
-    else if (currentQualityIndex > 0) {
-      player.setPlaybackQualityRange(availableQuality[currentQualityIndex - 1])
-      newQualityLabel = availableQuality[currentQualityIndex - 1]
-    }
+  let newQuality = null
+
+  switch (QUALITY_KEYS[key]) {
+    case "min quality":
+      // Set to minimum quality (second-to-last level)
+      newQuality = availableQualityLevels[MIN_QUALITY_INDEX]
+      break
+
+    case "max quality":
+      // Set to maximum quality (highest level)
+      newQuality = availableQualityLevels[MAX_QUALITY_INDEX]
+      break
+
+    case "increase":
+      // Increase quality if not already at max
+      if (currentIndex > MAX_QUALITY_INDEX) {
+        newQuality = availableQualityLevels[currentIndex - 1]
+      }
+      break
+
+    case "decrease":
+      // Decrease quality if not already at min
+      if (currentIndex < MIN_QUALITY_INDEX) {
+        newQuality = availableQualityLevels[currentIndex + 1]
+      }
+      break
+
+    case "auto":
+      // Set to auto quality mode
+      setQualityAuto()
+      updateToastText("Auto")
+      return
+
+    default:
+      // Set specific quality if valid
+      if (availableQualityLevels.includes(QUALITY_KEYS[key])) {
+        newQuality = QUALITY_KEYS[key]
+      } else {
+        console.warn(`Invalid quality key: ${QUALITY_KEYS[key]}`)
+      }
   }
-  else if (QUALITY_KEYS[key] === "decrease") {
-    if (currentQualityIndex == availableQuality.length - 2) {
-      newQualityLabel = currentQuality
-    }
-    else if (currentQualityIndex < availableQuality.length - 2) {
-      player.setPlaybackQualityRange(availableQuality[currentQualityIndex + 1])
-      newQualityLabel = availableQuality[currentQualityIndex + 1]
-    }
+
+  // Apply the new quality or provide feedback
+  if (newQuality) {
+    player.setPlaybackQualityRange(newQuality)
+    const qualityLabel = QUALITY_LABELS[newQuality] || newQuality
+    console.log(`Quality set to: ${qualityLabel}`)
+    updateToastText(`${qualityLabel}`)
   }
-  else if (QUALITY_KEYS[key] === "auto") {
-    setQualityAuto()
+  else if (QUALITY_KEYS[key] === "increase" || QUALITY_KEYS[key] === "decrease") {
+    // Feedback only for increase/decrease when no change is applied
+    console.log(`No quality change applied for ${QUALITY_KEYS[key]} `)
+    updateToastText(`${QUALITY_LABELS[currentQuality] || currentQuality}`)
   }
   else {
-    player.setPlaybackQualityRange(QUALITY_KEYS[key])
-    newQualityLabel = QUALITY_KEYS[key]
+    // No feedback for other cases when no change is applied
+    console.log("No quality change applied")
   }
-
-  // const newQuality = QUALITY_KEYS[key] === "auto" ? "Auto" : QUALITY_LABELS[player.getPlaybackQuality()]
-  const newQuality = QUALITY_KEYS[key] === "auto" ? "Auto" : QUALITY_LABELS[newQualityLabel]
-  updateToastText(`${newQuality}`)
 }
 
 
@@ -224,13 +255,13 @@ function changeChannelDefaultTabOnLoad() {
 // Helper Functions
 // -----------------
 function getKey(e) {
-  const key = e.keyCode || window.keyCode
+  let key = e.keyCode
+
+  if (e.ctrlKey) key = `ctrl+${key}`
+  if (e.shiftKey) key = `shift+${key}`
+  if (e.altKey) key = `alt+${key}`
 
   if (e.target.tagName == "INPUT" || e.target.tagName == "TEXTAREA" || e.target.id == "contenteditable-root") {
-    return
-  }
-
-  if (e.ctrlKey === true || e.shiftKey === true || e.altKey === true) {
     return
   }
 
