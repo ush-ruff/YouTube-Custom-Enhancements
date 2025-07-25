@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.7.0
+// @version      0.7.1
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -66,6 +66,7 @@ const QUALITY_LABELS = {
 
 const RX_CHANNEL_HOME = /^(https?:\/\/www\.youtube\.com)((\/(@\\?.*))|\/(user|channel|c)\/[^\/]+(\/?$|\/featured))/
 const DEFAULT_TAB_ENDPOINT_PARAMS = encodeURIComponent(btoa(String.fromCharCode(0x12, 0x06) + DEFAULT_TAB_HREF))
+const TRY_AGAIN_BTN = `ytd-item-section-renderer[page-subtype="channels"] ytd-background-promo-renderer a[aria-label="try again" i]`
 
 
 // --------------------
@@ -180,7 +181,7 @@ function changePlaybackQuality(key) {
       }
   }
 
-  // Apply the new quality or provide feedback
+  // Apply the new quality and/or provide feedback
   if (newQuality) {
     player.setPlaybackQualityRange(newQuality)
     const qualityLabel = QUALITY_LABELS[newQuality] || newQuality
@@ -238,16 +239,21 @@ function changeChannelDefaultTab(a) {
 
     // this makes sure that the videos tab is the one actually being loaded
     try { a.data.browseEndpoint.params = DEFAULT_TAB_ENDPOINT_PARAMS } catch (e) {}
+    document.addEventListener("yt-page-data-updated", reloadChannelPage, { once: true })
   }
 }
 
 function changeChannelDefaultTabOnLoad() {
   if (RX_CHANNEL_HOME.test(location.href) && String(location.href).indexOf(DEFAULT_TAB_HREF) === -1) {
-    // this will get invoked when a youtube channel link is reached from a non-youtube origin page
-    // where we didn't rewrite the link
+    // this will get invoked when a youtube channel link is reached from a non-youtube origin page where we didn't rewrite the link
     location.href = RegExp.$2 + "/" + DEFAULT_TAB_HREF
     return
   }
+}
+
+function reloadChannelPage() {
+  const tryAgain = document.querySelector(TRY_AGAIN_BTN)
+  if (tryAgain) location.reload()
 }
 
 
