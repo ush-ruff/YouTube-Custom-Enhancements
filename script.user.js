@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.7.1
+// @version      0.8.0
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -22,6 +22,10 @@
 // -----------------------
 const SET_PLAYER_SIZE = false
 const CLOSE_SIDEBAR = false
+
+const KEYS = {
+  // key: fnCall()
+}
 
 const QUALITY_KEYS = {
   // key: "hd2160",
@@ -85,11 +89,7 @@ if (CLOSE_SIDEBAR) {
 
 document.addEventListener("yt-navigate-finish", setupToast, {once: true})
 
-document.addEventListener("keydown", (e) => {
-  const player = document.querySelector(`ytd-watch-flexy:not([hidden]) #${PLAYER_ID}`)
-  const iframePlayer = document.querySelector(`body > #player #${PLAYER_ID}`)
-  if (player !== null || iframePlayer !== null) getKey(e)
-})
+document.addEventListener("keydown", pressKey)
 
 document.addEventListener("mousedown", (e) => {
   const a = e.target.closest("a")
@@ -130,6 +130,8 @@ function closeSidebar() {
 // Set playback quality
 // ---------------------
 function changePlaybackQuality(key) {
+  if (checkPlayerExists() == null) return
+
   // Get player, available quality and current quality
   const player = document.getElementById(PLAYER_ID)
   const availableQualityLevels = player.getAvailableQualityLevels()
@@ -143,31 +145,26 @@ function changePlaybackQuality(key) {
 
   switch (QUALITY_KEYS[key]) {
     case "min quality":
-      // Set to minimum quality (second-to-last level)
       newQuality = availableQualityLevels[MIN_QUALITY_INDEX]
       break
 
     case "max quality":
-      // Set to maximum quality (highest level)
       newQuality = availableQualityLevels[MAX_QUALITY_INDEX]
       break
 
     case "increase":
-      // Increase quality if not already at max
       if (currentIndex > MAX_QUALITY_INDEX) {
         newQuality = availableQualityLevels[currentIndex - 1]
       }
       break
 
     case "decrease":
-      // Decrease quality if not already at min
       if (currentIndex < MIN_QUALITY_INDEX) {
         newQuality = availableQualityLevels[currentIndex + 1]
       }
       break
 
     case "auto":
-      // Set to auto quality mode
       setQualityAuto()
       updateToastText("Auto")
       return
@@ -189,12 +186,12 @@ function changePlaybackQuality(key) {
     updateToastText(`${qualityLabel}`)
   }
   else if (QUALITY_KEYS[key] === "increase" || QUALITY_KEYS[key] === "decrease") {
-    // Feedback only for increase/decrease when no change is applied
+    // Toast feedback for increase/decrease request when no change is applied
     console.log(`No quality change applied for ${QUALITY_KEYS[key]} `)
     updateToastText(`${QUALITY_LABELS[currentQuality] || currentQuality}`)
   }
   else {
-    // No feedback for other cases when no change is applied
+    // No toast feedback for other cases when no change is applied
     console.log("No quality change applied")
   }
 }
@@ -204,6 +201,8 @@ function changePlaybackQuality(key) {
 // Set playback speed
 // -------------------
 function changePlaybackSpeed(key) {
+  if (checkPlayerExists() == null) return
+
   // get player and current speed
   const player = document.getElementById(PLAYER_ID)
   const currentSpeed = player.getPlaybackRate()
@@ -223,6 +222,7 @@ function changePlaybackSpeed(key) {
   if (newSpeed === undefined) return
 
   player.setPlaybackRate(newSpeed)
+  console.log(`Speed set to: ${newSpeed}x`)
   updateToastText(`${newSpeed}x`)
 }
 
@@ -260,18 +260,21 @@ function reloadChannelPage() {
 // -----------------
 // Helper Functions
 // -----------------
-function getKey(e) {
+function pressKey(e) {
   let key = e.keyCode
 
   if (e.ctrlKey) key = `ctrl+${key}`
   if (e.shiftKey) key = `shift+${key}`
   if (e.altKey) key = `alt+${key}`
 
-  if (e.target.tagName == "INPUT" || e.target.tagName == "TEXTAREA" || e.target.id == "contenteditable-root") {
-    return
-  }
+  if (e.target.tagName == "INPUT" || e.target.tagName == "TEXTAREA" || e.target.id == "contenteditable-root") return
 
-  if (SPEED_KEYS[key]) {
+  console.log(key)
+
+  if (key in KEYS) {
+    return KEYS[key]()
+  }
+  else if (SPEED_KEYS[key]) {
     changePlaybackSpeed(key)
   }
   else if (QUALITY_KEYS[key]) {
@@ -279,16 +282,19 @@ function getKey(e) {
   }
 }
 
+function checkPlayerExists() {
+  const player = document.querySelector(`ytd-watch-flexy:not([hidden]) #${PLAYER_ID}`)
+  const iframePlayer = document.querySelector(`body > #player #${PLAYER_ID}`)
+  return (player || iframePlayer)
+}
+
 function setQualityAuto() {
-  // click player settings
   const settingsBtn = document.querySelector(".ytp-chrome-bottom .ytp-right-controls .ytp-settings-button")
   settingsBtn.click()
 
-  // click quality tab
   const qualityBtn = document.querySelector(".ytp-settings-menu .ytp-panel-menu .ytp-menuitem:last-child .ytp-menuitem-label")
   qualityBtn.click()
 
-  // click on quality auto
   const availableQuality = document.querySelectorAll(".ytp-settings-menu .ytp-quality-menu .ytp-menuitem-label span:last-child")
   const autoQuality = availableQuality[availableQuality.length - 1]
   autoQuality.click()
