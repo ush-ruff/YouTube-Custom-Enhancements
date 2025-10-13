@@ -88,7 +88,7 @@ document.addEventListener("yt-navigate-finish", setupToast, {once: true})
 
 document.addEventListener("keydown", pressKey)
 
-document.addEventListener("mousedown", (e) => {
+document.addEventListener("click", (e) => {
   const target = e.target.closest('a')
   if (!target) return
   changeChannelDefaultTab(e, target)
