@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.8.1
+// @version      0.8.2
 // @description
 // @match        https://*.youtube.com/*
 // @icon
