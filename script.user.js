@@ -2,19 +2,24 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.8.2
+// @version      0.8.3
 // @description
 // @match        https://*.youtube.com/*
 // @icon
 // @homepageURL  https://github.com/ush-ruff/YouTube-Custom-Enhancements/
 // @downloadURL  https://github.com/ush-ruff/YouTube-Custom-Enhancements/raw/main/script.user.js
 // @grant        none
+// @run-at       document-start
 // ==/UserScript==
 
 // https://cdn.jsdelivr.net/npm/@violentmonkey/dom@1
 // https://cdn.jsdelivr.net/gh/CoeJoder/waitForKeyElements.js@v1.2/waitForKeyElements.js
 // https://developers.google.com/youtube/iframe_api_reference?csw=1#Events=
 // https://stackoverflow.com/questions/8802498/youtube-iframe-api-setplaybackquality-or-suggestedquality-not-working
+
+// Default tab redirection
+// original version: https://greasyfork.org/en/discussions/requests/56798-request-make-videoes-the-default-tab-on-youtube-channels#comment-455176
+// latest fixes: https://greasyfork.org/en/scripts/543087-youtube-channels-open-to-videos-tab
 
 
 // -----------------------
@@ -68,7 +73,7 @@ const QUALITY_LABELS = {
   "tiny": "144p"
 }
 
-const RX_CHANNEL_HOME = /^(https?:\/\/www\.youtube\.com)((\/(@[^\/]+))|\/(user|channel|c)\/[^\/]+)(\/?$|\/featured)/
+const RX_CHANNEL_HOME = /^(https?:\/\/www\.youtube\.com)((\/(user|channel|c)\/[^/]+)|(\/@(?!.*\/)[^/]+))(\/?$|\/featured[^/])/
 
 // --------------------
 // Add Event Listeners
@@ -88,14 +93,12 @@ document.addEventListener("yt-navigate-finish", setupToast, {once: true})
 
 document.addEventListener("keydown", pressKey)
 
-document.addEventListener("click", (e) => {
-  const target = e.target.closest('a')
-  if (!target) return
-  changeChannelDefaultTab(e, target)
-}, true)
+document.addEventListener('mousedown', (e) => { changeChannelDefaultTab(e) }, true)
 
-window.addEventListener("load", changeChannelDefaultTabOnLoad, {once: true})
-
+;(async () => { 
+  // this will get invoked when a youtube channel link is reached from a non-youtube origin page,
+  changeChannelDefaultTabOnLoad() 
+})()
 
 // ----------------
 // Set Player Size
@@ -219,7 +222,7 @@ function changePlaybackSpeed(key) {
   if (newSpeed === undefined) return
 
   player.setPlaybackRate(newSpeed)
-  console.log(`Speed set to: ${newSpeed}x`)
+  // console.log(`Speed set to: ${newSpeed}x`)
   updateToastText(`${newSpeed}x`)
 }
 
@@ -227,36 +230,34 @@ function changePlaybackSpeed(key) {
 // ---------------------------
 // Change channel default tab
 // ---------------------------
-function changeChannelDefaultTab(e, target) {
-  if (!target || !target.href) return
+function changeChannelDefaultTab(event) {
+  const anchorTag = event.target.closest('a')
+  const anchorGoesToChannel = anchorTag && RX_CHANNEL_HOME.test(anchorTag.href)
 
-  if (RX_CHANNEL_HOME.test(target.href) && !target.href.endsWith(DEFAULT_TAB_HREF) && !target.href.includes('/' + DEFAULT_TAB_HREF)) {
-    e.preventDefault()
-    e.stopPropagation()
-    e.stopImmediatePropagation()
+  if (!anchorGoesToChannel) return
 
-    const newUrl = target.href.replace(/\/?$/, '').replace(/\/featured$/, '') + "/" + DEFAULT_TAB_HREF
+  // a channel link was clicked so it has to be rewritten before the actual navigation happens
+  // e.g. when opening a channel link in a new tab
+  const channelName = RegExp.$2
+  anchorTag.href = channelName + "/" + DEFAULT_TAB_HREF
 
-    if (window.ytNavigate) {
-      window.ytNavigate(newUrl)
-    } else if (window.location.href === newUrl) {
-      window.location.reload()
-    } else {
-      window.history.pushState(null, '', newUrl)
-      window.dispatchEvent(new PopStateEvent('popstate', { state: null }))
+  anchorTag.data = {
+    commandMetadata: {
+      webCommandMetadata: {
+        url: channelName + "/" + DEFAULT_TAB_HREF
+      }
+    },
+    browseEndpoint: {
+      browseId: buildBrowseId(anchorTag),
+      params: `EgZ2aWRlb3MYAyAAcALyBg0KCzoEIgIIBKIBAggB`
     }
-
-    return false
   }
 }
 
 function changeChannelDefaultTabOnLoad() {
-  if (RX_CHANNEL_HOME.test(location.href) && !location.href.includes(DEFAULT_TAB_HREF)) {
-    const match = location.href.match(RX_CHANNEL_HOME)
-    if (match && match[2]) {
-      location.href = match[1] + match[2].replace(/\/?$/, '').replace(/\/featured$/, '') + "/" + DEFAULT_TAB_HREF
-    }
-  }
+  const startedOnChannel = RX_CHANNEL_HOME.test(location.href)
+  if (!startedOnChannel) return
+  location.href = RegExp.$2 + "/" + DEFAULT_TAB_HREF
 }
 
 
@@ -272,7 +273,7 @@ function pressKey(e) {
 
   if (e.target.tagName == "INPUT" || e.target.tagName == "TEXTAREA" || e.target.id == "contenteditable-root") return
 
-  console.log(key)
+  // console.log(key)
 
   if (key in KEYS) {
     return KEYS[key]()
@@ -305,6 +306,12 @@ function setQualityAuto() {
   // give focus back to player
   const player = document.getElementById(PLAYER_ID)
   player.focus()
+}
+
+function buildBrowseId(anchorTag) {
+  const data = anchorTag._data ?? anchorTag.data
+  const browseId = data?.browseEndpoint?.browseId
+  return browseId
 }
 
 
