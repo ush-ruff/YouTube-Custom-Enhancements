@@ -2,24 +2,26 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      0.8.3
+// @version      1.0.0
 // @description
 // @match        https://*.youtube.com/*
 // @icon
 // @homepageURL  https://github.com/ush-ruff/YouTube-Custom-Enhancements/
 // @downloadURL  https://github.com/ush-ruff/YouTube-Custom-Enhancements/raw/main/script.user.js
 // @grant        none
+// @license      GNU GPLv3
 // @run-at       document-start
+// @require      https://raw.githubusercontent.com/ush-ruff/Common/refs/heads/main/Userscript-Helper-Lib/helpersLib.js
 // ==/UserScript==
 
-// https://cdn.jsdelivr.net/npm/@violentmonkey/dom@1
-// https://cdn.jsdelivr.net/gh/CoeJoder/waitForKeyElements.js@v1.2/waitForKeyElements.js
 // https://developers.google.com/youtube/iframe_api_reference?csw=1#Events=
 // https://stackoverflow.com/questions/8802498/youtube-iframe-api-setplaybackquality-or-suggestedquality-not-working
 
-// Default tab redirection
-// original version: https://greasyfork.org/en/discussions/requests/56798-request-make-videoes-the-default-tab-on-youtube-channels#comment-455176
-// latest fixes: https://greasyfork.org/en/scripts/543087-youtube-channels-open-to-videos-tab
+/*
+ * Portions of this script are derived from work by
+ * Bawdy Ink Slinger (2025), licensed under the MIT License.
+ * See THIRD_PARTY_NOTICES.txt for full license text.
+ */
 
 
 // -----------------------
@@ -28,33 +30,56 @@
 const SET_PLAYER_SIZE = false
 const CLOSE_SIDEBAR = false
 
-const KEYS = {
-  // key: fnCall()
-}
-
-const QUALITY_KEYS = {
-  // key: "hd2160",
-  // key: "hd1440",
-  65: "hd1080",
-  83: "hd720",
-  68: "large",
-  // key: "medium",
-  // key: "small",
-  // key: "tiny",
-  81: "auto",
-  90: "decrease",
-  88: "increase",
-  "shift+90": "min quality",
-  "shift+88": "max quality"
-}
-
-const SPEED_KEYS = {
-  107: "increase",
-  109: "decrease",
-  106: "default"
-}
-
 const DEFAULT_TAB_HREF = "videos"
+const SPEED_CHANGE_FACTOR = 0.25
+const DEBUG = false
+
+const KEYS = {
+  "A": {
+    action: () => changePlaybackQuality("hd1080"),
+    label: "Set quality to 1080p",
+  },
+  "S": {
+    action: () => changePlaybackQuality("hd720"),
+    label: "Set quality to 720p",
+  },
+  "D": {
+    action: () => changePlaybackQuality("large"),
+    label: "Set quality to 480p",
+  },
+  "Q": {
+    action: () => changePlaybackQuality("auto"),
+    label: "Set quality to Auto",
+  },
+  "Z": {
+    action: () => changePlaybackQuality("decrease"),
+    label: "Decrease playback quality",
+  },
+  "X": {
+    action: () => changePlaybackQuality("increase"),
+    label: "Increase playback quality",
+  },
+  "Shift + Z": {
+    action: () => changePlaybackQuality("min quality"),
+    label: "Set quality to minimum",
+  },
+  "Shift + X": {
+    action: () => changePlaybackQuality("max quality"),
+    label: "Set quality to maximum",
+  },
+  "-": {
+    action: () => changePlaybackSpeed("decrease"),
+    label: "Decrease playback speed",
+  },
+  "+": {
+    action: () => changePlaybackSpeed("increase"),
+    label: "Increase playback speed",
+  },
+  "*": {
+    action: () => changePlaybackSpeed("default"),
+    label: "Set speed to normal",
+  }
+}
 
 // --------------------
 // REFERENCE VARIABLES
@@ -75,30 +100,27 @@ const QUALITY_LABELS = {
 
 const RX_CHANNEL_HOME = /^(https?:\/\/www\.youtube\.com)((\/(user|channel|c)\/[^/]+)|(\/@(?!.*\/)[^/]+))(\/?$|\/featured[^/])/
 
+const { installKeyHandler } = window.ushruffUSKit
+
+
 // --------------------
 // Add Event Listeners
 // --------------------
-if (SET_PLAYER_SIZE) {
-  document.addEventListener("yt-navigate-finish", () => {
-    // waitForKeyElements(PLAYER_ID, setPlayerSize)
-    setPlayerSize()
-  })
-}
+if (SET_PLAYER_SIZE) { document.addEventListener("yt-navigate-finish", setPlayerSize) }
 
-if (CLOSE_SIDEBAR) {
-  document.addEventListener("yt-navigate-finish", closeSidebar)
-}
+if (CLOSE_SIDEBAR) { document.addEventListener("yt-navigate-finish", closeSidebar) }
 
 document.addEventListener("yt-navigate-finish", setupToast, {once: true})
 
-document.addEventListener("keydown", pressKey)
+document.addEventListener("mousedown", (e) => { changeChannelDefaultTab(e) }, true)
 
-document.addEventListener('mousedown', (e) => { changeChannelDefaultTab(e) }, true)
+window.addEventListener("load", () => { installKeyHandler(KEYS) })
 
-;(async () => { 
+;(async () => {
   // this will get invoked when a youtube channel link is reached from a non-youtube origin page,
-  changeChannelDefaultTabOnLoad() 
+  changeChannelDefaultTabOnLoad()
 })()
+
 
 // ----------------
 // Set Player Size
@@ -109,7 +131,7 @@ function setPlayerSize() {
     if (!player) return
     const size = player.clientHeight
     if (!player.isFullscreen() && player.getPlayerSize().height !== size)
-      // console.log(size, player.getPlayerSize().height)
+      debug(size, player.getPlayerSize().height)
       player.setInternalSize()
   }, 1000)
 }
@@ -129,38 +151,38 @@ function closeSidebar() {
 // ---------------------
 // Set playback quality
 // ---------------------
-function changePlaybackQuality(key) {
-  if (checkPlayerExists() == null) return
+function changePlaybackQuality(requestedQuality) {
+  if (checkPlayerExists() === null) return
 
   // Get player, available quality and current quality
   const player = document.getElementById(PLAYER_ID)
-  const availableQualityLevels = player.getAvailableQualityLevels()
+  const availableQualityList = player.getAvailableQualityLevels()
   const currentQuality = player.getPlaybackQuality()
-  const currentIndex = availableQualityLevels.indexOf(currentQuality)
+  const currentQualityIndex = availableQualityList.indexOf(currentQuality)
 
-  const MIN_QUALITY_INDEX = availableQualityLevels.length - 2
-  const MAX_QUALITY_INDEX = 0
+  const minQualityIndex = availableQualityList.length - 2   // -2 here is used to exclude "Auto"
+  const maxQualityIndex = 0
 
   let newQuality = null
 
-  switch (QUALITY_KEYS[key]) {
+  switch (requestedQuality) {
     case "min quality":
-      newQuality = availableQualityLevels[MIN_QUALITY_INDEX]
+      newQuality = availableQualityList[minQualityIndex]
       break
 
     case "max quality":
-      newQuality = availableQualityLevels[MAX_QUALITY_INDEX]
+      newQuality = availableQualityList[maxQualityIndex]
       break
 
     case "increase":
-      if (currentIndex > MAX_QUALITY_INDEX) {
-        newQuality = availableQualityLevels[currentIndex - 1]
+      if (currentQualityIndex > maxQualityIndex) {
+        newQuality = availableQualityList[currentQualityIndex - 1]
       }
       break
 
     case "decrease":
-      if (currentIndex < MIN_QUALITY_INDEX) {
-        newQuality = availableQualityLevels[currentIndex + 1]
+      if (currentQualityIndex < minQualityIndex) {
+        newQuality = availableQualityList[currentQualityIndex + 1]
       }
       break
 
@@ -171,28 +193,29 @@ function changePlaybackQuality(key) {
 
     default:
       // Set specific quality if valid
-      if (availableQualityLevels.includes(QUALITY_KEYS[key])) {
-        newQuality = QUALITY_KEYS[key]
-      } else {
-        console.warn(`Invalid quality key: ${QUALITY_KEYS[key]}`)
+      if (availableQualityList.includes(requestedQuality)) {
+        newQuality = requestedQuality
+      }
+      else {
+        debug(`Invalid quality key: ${requestedQuality}`)
       }
   }
 
-  // Apply the new quality and/or provide feedback
+  // Apply the new quality and provide feedback
   if (newQuality) {
     player.setPlaybackQualityRange(newQuality)
     const qualityLabel = QUALITY_LABELS[newQuality] || newQuality
-    console.log(`Quality set to: ${qualityLabel}`)
     updateToastText(`${qualityLabel}`)
+    debug(`Quality set to: ${qualityLabel}`)
   }
-  else if (QUALITY_KEYS[key] === "increase" || QUALITY_KEYS[key] === "decrease") {
+  else if (requestedQuality === "increase" || requestedQuality === "decrease" || currentQualityIndex === minQualityIndex || currentQualityIndex === maxQualityIndex) {
     // Toast feedback for increase/decrease request when no change is applied
-    console.log(`No quality change applied for ${QUALITY_KEYS[key]} `)
     updateToastText(`${QUALITY_LABELS[currentQuality] || currentQuality}`)
+    debug(`No quality change applied for ${requestedQuality} `)
   }
   else {
     // No toast feedback for other cases when no change is applied
-    console.log("No quality change applied")
+    debug("No quality change applied")
   }
 }
 
@@ -200,7 +223,7 @@ function changePlaybackQuality(key) {
 // -------------------
 // Set playback speed
 // -------------------
-function changePlaybackSpeed(key) {
+function changePlaybackSpeed(requestedSpeed) {
   if (checkPlayerExists() == null) return
 
   // get player and current speed
@@ -209,21 +232,25 @@ function changePlaybackSpeed(key) {
   let newSpeed
 
   // change speed
-  if (SPEED_KEYS[key] === "decrease" && currentSpeed > 0.25) {
-    newSpeed = currentSpeed - 0.25
+  if (requestedSpeed === "decrease" && currentSpeed > 0.25) {
+    newSpeed = currentSpeed - SPEED_CHANGE_FACTOR
   }
-  else if (SPEED_KEYS[key] === "increase" && currentSpeed < 2) {
-    newSpeed = currentSpeed + 0.25
+  else if (requestedSpeed === "increase" && currentSpeed < 2) {
+    newSpeed = currentSpeed + SPEED_CHANGE_FACTOR
   }
-  else if (SPEED_KEYS[key] === "default" && currentSpeed !== 1) {
+  else if (requestedSpeed === "default" && currentSpeed !== 1) {
     newSpeed = 1
   }
 
-  if (newSpeed === undefined) return
+  if (newSpeed === undefined) {
+    updateToastText(`${currentSpeed}x`)
+    return
+  }
 
+  newSpeed = roundDown(newSpeed, 2)
   player.setPlaybackRate(newSpeed)
-  // console.log(`Speed set to: ${newSpeed}x`)
   updateToastText(`${newSpeed}x`)
+  debug(`Speed set to: ${newSpeed}x`)
 }
 
 
@@ -264,28 +291,6 @@ function changeChannelDefaultTabOnLoad() {
 // -----------------
 // Helper Functions
 // -----------------
-function pressKey(e) {
-  let key = e.keyCode
-
-  if (e.ctrlKey) key = `ctrl+${key}`
-  if (e.shiftKey) key = `shift+${key}`
-  if (e.altKey) key = `alt+${key}`
-
-  if (e.target.tagName == "INPUT" || e.target.tagName == "TEXTAREA" || e.target.id == "contenteditable-root") return
-
-  // console.log(key)
-
-  if (key in KEYS) {
-    return KEYS[key]()
-  }
-  else if (SPEED_KEYS[key]) {
-    changePlaybackSpeed(key)
-  }
-  else if (QUALITY_KEYS[key]) {
-    changePlaybackQuality(key)
-  }
-}
-
 function checkPlayerExists() {
   const player = document.querySelector(`ytd-watch-flexy:not([hidden]) #${PLAYER_ID}`)
   const iframePlayer = document.querySelector(`body > #player #${PLAYER_ID}`)
@@ -314,6 +319,15 @@ function buildBrowseId(anchorTag) {
   return browseId
 }
 
+function debug(...args) {
+  if (!DEBUG) return
+  console.log(...args)
+}
+
+function roundDown(num, precision) {
+  precision = Math.pow(10, precision)
+  return Math.floor(num * precision) / precision
+}
 
 // ----------------
 // Toast functions
@@ -353,39 +367,42 @@ function updateToastText(text) {
 
 function addStyle() {
   const styleSheet = document.createElement("style")
+
   styleSheet.textContent = `
-  #${TOAST_ID} {
-    position: absolute;
-    display: grid;
-    place-items: center;
-    top: 10%;
-    left: 50%;
-    transform: translateX(-50%);
-    user-select: none;
-    z-index: 20;
-  }
-  .${TOAST_ID}-text {
-    font-size: 175%;
-    text-align: center;
-    text-shadow: 0 0 2px rgba(0,0,0,.5);
-    line-height: 1.3;
-    padding: 10px 20px;
-    background-color: rgba(0, 0, 0, .5);
-    border-radius: 0.25rem;
-    pointer-events: none;
-    animation: fadeout .5s .3s linear 1 normal forwards;
-  }
-  @keyframes fadeout {
-    0% {
-      opacity: 1;
+    #${TOAST_ID} {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      user-select: none;
+      z-index: 20;
     }
-    25% {
-      opacity:1
+    
+    .${TOAST_ID}-text {
+      font-size: 175%;
+      text-align: center;
+      text-shadow: 0 0 2px rgba(0,0,0,.5);
+      line-height: 1.3;
+      padding: 10px 20px;
+      background-color: rgba(0, 0, 0, .5);
+      border-radius: 0.25rem;
+      pointer-events: none;
+      animation: fadeout .5s .3s linear 1 normal forwards;
     }
-    to {
-      opacity:0
+    
+    @keyframes fadeout {
+      0% {
+        opacity: 1;
+      }
+      25% {
+        opacity:1
+      }
+      to {
+        opacity:0
+      }
     }
-  }
   `
   document.head.append(styleSheet)
 }
