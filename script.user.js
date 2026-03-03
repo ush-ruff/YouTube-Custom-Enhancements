@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      1.0.0
+// @version      1.0.1
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -98,7 +98,7 @@ const QUALITY_LABELS = {
   "tiny": "144p"
 }
 
-const RX_CHANNEL_HOME = /^(https?:\/\/www\.youtube\.com)((\/(user|channel|c)\/[^/]+)|(\/@(?!.*\/)[^/]+))(\/?$|\/featured[^/])/
+const RX_CHANNEL_HOME = /^(https?:\/\/www\.youtube\.com)((\/(user|channel|c)\/[^\/]+)|(\/@(?!.*\/)[^\/]+))(\/?$|\/featured[^\/])/
 
 const { installKeyHandler } = window.ushruffUSKit
 
@@ -110,9 +110,11 @@ if (SET_PLAYER_SIZE) { document.addEventListener("yt-navigate-finish", setPlayer
 
 if (CLOSE_SIDEBAR) { document.addEventListener("yt-navigate-finish", closeSidebar) }
 
-document.addEventListener("yt-navigate-finish", setupToast, {once: true})
+document.addEventListener("yt-navigate-finish", setupToast, { once: true })
 
-document.addEventListener("mousedown", (e) => { changeChannelDefaultTab(e) }, true)
+document.addEventListener("mousedown", (e) => { changeChannelDefaultTab(e) }, { capture: true })
+
+window.addEventListener("yt-navigate-start", () => { changeChannelDefaultTabOnLoad({ replaceHistory: true }) })
 
 window.addEventListener("load", () => { installKeyHandler(KEYS) })
 
@@ -281,10 +283,17 @@ function changeChannelDefaultTab(event) {
   }
 }
 
-function changeChannelDefaultTabOnLoad() {
+function changeChannelDefaultTabOnLoad({ updateHistory: replaceHistory = false } = {}) {
   const startedOnChannel = RX_CHANNEL_HOME.test(location.href)
   if (!startedOnChannel) return
-  location.href = RegExp.$2 + "/" + DEFAULT_TAB_HREF
+
+  const newUrl = RegExp.$2 + "/" + DEFAULT_TAB_HREF
+
+  if (replaceHistory) {
+    history.replaceState(null, "", newUrl)
+  }
+
+  location.href = newUrl
 }
 
 
