@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      1.0.1
+// @version      1.1.0
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -11,7 +11,6 @@
 // @grant        none
 // @license      GNU GPLv3
 // @run-at       document-start
-// @require      https://raw.githubusercontent.com/ush-ruff/Common/refs/heads/main/Userscript-Helper-Lib/helpersLib.js
 // ==/UserScript==
 
 // https://developers.google.com/youtube/iframe_api_reference?csw=1#Events=
@@ -81,6 +80,7 @@ const KEYS = {
   }
 }
 
+
 // --------------------
 // REFERENCE VARIABLES
 // --------------------
@@ -99,6 +99,33 @@ const QUALITY_LABELS = {
 }
 
 const RX_CHANNEL_HOME = /^(https?:\/\/www\.youtube\.com)((\/(user|channel|c)\/[^\/]+)|(\/@(?!.*\/)[^\/]+))(\/?$|\/featured[^\/])/
+
+
+// --------------------
+// SETUP DEPENDENCIES
+// --------------------
+const LIB_INSTALL_URL = "https://raw.githubusercontent.com/ush-ruff/Common/main/Userscript-Helper-Lib/helpersLib.user.js"
+
+function ensureLibrary() {
+  const lib = window.ushruffUSKit
+
+  if (!lib) {
+    console.error(
+      `The installed script requires ushrufUSKit library. Install the script and refresh the current tab.\n` +
+      `If the script does not automatically redirect you, visit the following link.\n` +
+      `${LIB_INSTALL_URL}` +
+      `Ensure that the library runs before the current script to avoid errors.`
+    )
+    window.open(LIB_INSTALL_URL, "_blank")
+    return false
+  }
+
+  return true
+}
+
+if (!ensureLibrary()) {
+  return
+}
 
 const { installKeyHandler } = window.ushruffUSKit
 
