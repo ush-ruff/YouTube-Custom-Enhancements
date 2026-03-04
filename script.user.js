@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      1.1.0
+// @version      1.1.1
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -23,9 +23,9 @@
  */
 
 
-// -----------------------
-// CONFIGURABLE VARIABLES
-// -----------------------
+// -------------------------------------------
+// Configurable Variables
+// -------------------------------------------
 const SET_PLAYER_SIZE = false
 const CLOSE_SIDEBAR = false
 
@@ -81,9 +81,9 @@ const KEYS = {
 }
 
 
-// --------------------
-// REFERENCE VARIABLES
-// --------------------
+// -------------------------------------------
+// Reference Variables
+// -------------------------------------------
 const PLAYER_ID = "movie_player"
 const TOAST_ID = "yt-custom-toast"
 
@@ -101,9 +101,9 @@ const QUALITY_LABELS = {
 const RX_CHANNEL_HOME = /^(https?:\/\/www\.youtube\.com)((\/(user|channel|c)\/[^\/]+)|(\/@(?!.*\/)[^\/]+))(\/?$|\/featured[^\/])/
 
 
-// --------------------
-// SETUP DEPENDENCIES
-// --------------------
+// -------------------------------------------
+// Setup Dependencies
+// -------------------------------------------
 const LIB_INSTALL_URL = "https://raw.githubusercontent.com/ush-ruff/Common/main/Userscript-Helper-Lib/helpersLib.user.js"
 
 function ensureLibrary() {
@@ -130,9 +130,9 @@ if (!ensureLibrary()) {
 const { installKeyHandler } = window.ushruffUSKit
 
 
-// --------------------
+// -------------------------------------------
 // Add Event Listeners
-// --------------------
+// -------------------------------------------
 if (SET_PLAYER_SIZE) { document.addEventListener("yt-navigate-finish", setPlayerSize) }
 
 if (CLOSE_SIDEBAR) { document.addEventListener("yt-navigate-finish", closeSidebar) }
@@ -151,9 +151,9 @@ window.addEventListener("load", () => { installKeyHandler(KEYS) })
 })()
 
 
-// ----------------
+// -------------------------------------------
 // Set Player Size
-// ----------------
+// -------------------------------------------
 function setPlayerSize() {
   setInterval(function() {
     const player = document.getElementById("movie_player")
@@ -166,9 +166,9 @@ function setPlayerSize() {
 }
 
 
-// --------------
+// -------------------------------------------
 // Close Sidebar
-// --------------
+// -------------------------------------------
 function closeSidebar() {
   const sidebar = document.getElementById("guide")
   if (sidebar.opened) {
@@ -177,9 +177,9 @@ function closeSidebar() {
 }
 
 
-// ---------------------
+// -------------------------------------------
 // Set playback quality
-// ---------------------
+// -------------------------------------------
 function changePlaybackQuality(requestedQuality) {
   if (checkPlayerExists() === null) return
 
@@ -249,9 +249,9 @@ function changePlaybackQuality(requestedQuality) {
 }
 
 
-// -------------------
+// -------------------------------------------
 // Set playback speed
-// -------------------
+// -------------------------------------------
 function changePlaybackSpeed(requestedSpeed) {
   if (checkPlayerExists() == null) return
 
@@ -283,9 +283,9 @@ function changePlaybackSpeed(requestedSpeed) {
 }
 
 
-// ---------------------------
+// -------------------------------------------
 // Change channel default tab
-// ---------------------------
+// -------------------------------------------
 function changeChannelDefaultTab(event) {
   const anchorTag = event.target.closest('a')
   const anchorGoesToChannel = anchorTag && RX_CHANNEL_HOME.test(anchorTag.href)
@@ -324,9 +324,9 @@ function changeChannelDefaultTabOnLoad({ updateHistory: replaceHistory = false }
 }
 
 
-// -----------------
+// -------------------------------------------
 // Helper Functions
-// -----------------
+// -------------------------------------------
 function checkPlayerExists() {
   const player = document.querySelector(`ytd-watch-flexy:not([hidden]) #${PLAYER_ID}`)
   const iframePlayer = document.querySelector(`body > #player #${PLAYER_ID}`)
@@ -365,9 +365,9 @@ function roundDown(num, precision) {
   return Math.floor(num * precision) / precision
 }
 
-// ----------------
+// -------------------------------------------
 // Toast functions
-// ----------------
+// -------------------------------------------
 function setupToast() {
   const parent = document.getElementById(PLAYER_ID)
 
