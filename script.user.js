@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      1.2.0
+// @version      1.2.1
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -81,6 +81,7 @@ const KEYS = {
   }
 }
 
+const SCRIPT_ID = "yt-custom-enhancements"
 
 // -------------------------------------------
 // Reference Variables
@@ -106,7 +107,7 @@ const RX_CHANNEL_HOME = /^(https?:\/\/www\.youtube\.com)((\/(user|channel|c)\/[^
 // Setup Dependencies
 // -------------------------------------------
 const ushruffUSKit = ensureUSKit.getUSKit()
-const { installKeyHandler } = window.ushruffUSKit
+const { registerShortcutKeys } = window.ushruffUSKit
 
 
 // -------------------------------------------
@@ -122,7 +123,7 @@ document.addEventListener("mousedown", (e) => { changeChannelDefaultTab(e) }, { 
 
 window.addEventListener("yt-navigate-start", () => { changeChannelDefaultTabOnLoad({ replaceHistory: true }) })
 
-window.addEventListener("load", () => { installKeyHandler(KEYS) })
+window.addEventListener("load", () => { registerShortcutKeys(SCRIPT_ID, KEYS) })
 
 ;(async () => {
   // this will get invoked when a youtube channel link is reached from a non-youtube origin page,
