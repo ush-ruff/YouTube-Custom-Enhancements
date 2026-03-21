@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      1.2.1
+// @version      1.3.0
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -78,14 +78,18 @@ const KEYS = {
   "*": {
     action: () => changePlaybackSpeed("default"),
     label: "Set speed to normal",
+  }, 
+  "E": {
+    action: () => clickElement(".ytp-live-badge.ytp-button"),
+    label: "Return to live playback"
   }
 }
 
-const SCRIPT_ID = "yt-custom-enhancements"
 
 // -------------------------------------------
 // Reference Variables
 // -------------------------------------------
+const SCRIPT_ID = "yt-custom-enhancements"
 const PLAYER_ID = "movie_player"
 const TOAST_ID = "yt-custom-toast"
 
@@ -107,7 +111,7 @@ const RX_CHANNEL_HOME = /^(https?:\/\/www\.youtube\.com)((\/(user|channel|c)\/[^
 // Setup Dependencies
 // -------------------------------------------
 const ushruffUSKit = ensureUSKit.getUSKit()
-const { registerShortcutKeys } = window.ushruffUSKit
+const { registerShortcutKeys, clickElement } = window.ushruffUSKit
 
 
 // -------------------------------------------
