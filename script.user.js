@@ -2,7 +2,7 @@
 // @name         YouTube - Custom Enhancements
 // @namespace    Violentmonkey Scripts
 // @author       ushruff
-// @version      1.3.1
+// @version      1.3.2
 // @description
 // @match        https://*.youtube.com/*
 // @icon
@@ -80,7 +80,7 @@ const KEYS = {
     label: "Set speed to normal",
   }, 
   "E": {
-    action: () => clickElement(".ytp-live-badge.ytp-button:not([disabled])"),
+    action: () => clickElement(".ytp-live .ytp-live-badge.ytp-button:not([disabled])"),
     label: "Return to live playback"
   }
 }
